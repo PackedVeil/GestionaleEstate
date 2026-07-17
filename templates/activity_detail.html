@@ -1,0 +1,496 @@
+{% extends 'base.html' %}
+
+{% block title %}Dettagli Attività - CampHero{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <!-- Pulsante indietro -->
+    <div class="back-link-container">
+        {% if back_week and back_day %}
+            <a href="{{ url_for('schedule', week=back_week, day=back_day) }}" class="btn-back">
+                <i class="fa-solid fa-arrow-left-long"></i> Torna al Tabellone Orario
+            </a>
+        {% else %}
+            <a href="{{ url_for('schedule') }}" class="btn-back">
+                <i class="fa-solid fa-arrow-left-long"></i> Torna all'Orario
+            </a>
+        {% endif %}
+    </div>
+
+    {% set is_gioco = activity.category == 'gioco' %}
+    {% set is_cerchio = activity.category == 'cerchio' %}
+
+    <!-- Banner Vincitore Celebrativo (Solo per Gioco) -->
+    {% if is_gioco and activity.winner %}
+        <div class="winner-celebration-banner">
+            <div class="trophy-glow"><i class="fa-solid fa-trophy"></i></div>
+            <div class="winner-info">
+                <span class="winner-label">Vincitore del Gioco!</span>
+                <span class="winner-name">{{ activity.winner }}</span>
+            </div>
+        </div>
+    {% endif %}
+
+    <article class="detail-card">
+        <!-- Header del Dettaglio -->
+        <header class="detail-card-header category-header-{{ activity.category }}">
+            <div class="header-main-info">
+                <div class="game-icon-circle-new cat-icon-{{ activity.category }}">
+                    {% if activity.category == 'gioco' %}
+                        <i class="fa-solid fa-gamepad"></i>
+                    {% elif activity.category == 'gioco_evento' %}
+                        <i class="fa-solid fa-star"></i>
+                    {% elif activity.category == 'cerchio' %}
+                        <i class="fa-solid fa-people-group"></i>
+                    {% elif activity.category == 'laboratorio_sportivo' %}
+                        <i class="fa-solid fa-volleyball"></i>
+                    {% elif activity.category == 'laboratorio_speciale' %}
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                    {% elif activity.category == 'pranzo' %}
+                        <i class="fa-solid fa-utensils"></i>
+                    {% elif activity.category == 'compiti' %}
+                        <i class="fa-solid fa-book-open"></i>
+                    {% else %}
+                        <i class="fa-solid fa-mug-hot"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="detail-category-badge-new badge-cat-{{ activity.category }}">
+                        <i class="fa-solid fa-tag"></i> {{ activity.category | upper }}
+                    </span>
+                    <h1 class="detail-title">{{ activity.title }}</h1>
+                </div>
+            </div>
+            
+            <div class="header-status-badge">
+                {% if is_gioco %}
+                    {% if activity.referees | length >= activity.referees_needed %}
+                        <span class="badge badge-success lg">
+                            <i class="fa-solid fa-user-check"></i> Arbitri Al Completo ({{ activity.referees | length }}/{{ activity.referees_needed }})
+                        </span>
+                    {% else %}
+                        <span class="badge badge-warning lg">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Arbitri Necessari ({{ activity.referees | length }}/{{ activity.referees_needed }})
+                        </span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge badge-info-category lg">
+                        <i class="fa-solid fa-calendar-check"></i> Evento Programmato
+                    </span>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Corpo del Dettaglio -->
+        <div class="detail-card-body">
+            <!-- Informazioni Temporali -->
+            <section class="detail-info-grid">
+                <div class="info-tile">
+                    <div class="tile-icon"><i class="fa-regular fa-calendar-days"></i></div>
+                    <div class="tile-content">
+                        <span class="tile-label">Giorno</span>
+                        <strong class="tile-value">{{ activity.day_of_week }}</strong>
+                    </div>
+                </div>
+                
+                <div class="info-tile">
+                    <div class="tile-icon"><i class="fa-regular fa-clock"></i></div>
+                    <div class="tile-content">
+                        <span class="tile-label">Fascia Oraria</span>
+                        <strong class="tile-value">{{ activity.start_time }} - {{ activity.end_time }}</strong>
+                    </div>
+                </div>
+
+                <div class="info-tile">
+                    <div class="tile-icon"><i class="fa-solid fa-calendar-week"></i></div>
+                    <div class="tile-content">
+                        <span class="tile-label">Settimana</span>
+                        <strong class="tile-value">Inizio {{ activity.week_start }}</strong>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sezione Campo di Gioco (Solo per Gioco) -->
+            {% if is_gioco and activity.field %}
+                <section class="detail-location-section">
+                    <div class="location-box">
+                        <span class="location-icon"><i class="fa-solid fa-location-dot"></i></span>
+                        <div class="location-details">
+                            <span class="location-label">Luogo di Gioco / Campo</span>
+                            <strong class="location-value">{{ activity.field }}</strong>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- Sezione Attività Facoltativa (Solo per Cerchio) -->
+            {% if is_cerchio and activity.optional_activity %}
+                <section class="detail-optional-activity-section">
+                    <div class="optional-activity-box">
+                        <span class="optional-icon"><i class="fa-solid fa-star"></i></span>
+                        <div class="optional-details">
+                            <span class="optional-label">Attività Facoltativa Programmata</span>
+                            <strong class="optional-value">{{ activity.optional_activity }}</strong>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- Sfida tra squadre (Solo per Gioco) -->
+            {% if is_gioco %}
+                <section class="detail-teams-section">
+                    <h2><i class="fa-solid fa-people-group icon-accent"></i> Risultati dell'Incontro</h2>
+                    
+                    {% if activity.matchups and activity.matchups | length > 1 %}
+                        <!-- Visualizzazione per molteplici abbinamenti (30m ciascuno) -->
+                        <div class="matchups-results-list">
+                            {% for matchup in activity.matchups %}
+                                <div class="matchup-result-card card-container-glow p-4 mb-4" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #fafbfc; margin-bottom: 20px; padding: 20px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2" style="border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 8px;">
+                                        <strong style="font-family: var(--font-heading); font-size: 16px; color: var(--text-main);">
+                                            Abbinamento {{ loop.index }} <span style="font-weight: 500; font-size: 14px; color: var(--text-muted); margin-left: 8px;">({{ matchup.start_time }} - {{ matchup.end_time }})</span>
+                                        </strong>
+                                        {% if matchup.winner %}
+                                            <span class="badge badge-success" style="padding: 6px 12px; font-size: 12px;">
+                                                <i class="fa-solid fa-trophy"></i> {% if matchup.winner == 'Pareggio' %}Pareggio{% else %}Vincitore: {{ matchup.winner }}{% endif %}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-warning" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-hourglass-half"></i> In attesa di risultato</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if activity.activity_type == 'grande_gioco' %}
+                                        <!-- Piazzamenti Grande Gioco per matchup singolo -->
+                                        {% if matchup.winner %}
+                                            <div class="current-ranking-display mb-3" style="margin-bottom: 15px;">
+                                                <ol class="ranking-ordered-list">
+                                                    <li class="rank-item rank-1"><strong>1° Posto (200 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2"><i class="fa-solid fa-crown text-amber"></i> {{ matchup.winner }}</span></li>
+                                                    <li class="rank-item rank-2"><strong>2° Posto (150 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2">{{ matchup.second_place or 'Non specificato' }}</span></li>
+                                                    <li class="rank-item rank-3"><strong>3° Posto (100 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2">{{ matchup.third_place or 'Non specificato' }}</span></li>
+                                                    <li class="rank-item rank-4"><strong>4° Posto (50 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2">{{ matchup.fourth_place or 'Non specificato' }}</span></li>
+                                                </ol>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <form action="{{ url_for('set_matchup_ranking', activity_id=activity.id) }}" method="POST" class="ranking-selection-form p-3" style="background: white; border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 15px;">
+                                            <input type="hidden" name="matchup_index" value="{{ loop.index0 }}">
+                                            <h5 class="mb-2" style="font-family: var(--font-heading); font-weight: 700; margin-bottom: 10px;"><i class="fa-solid fa-pen-clip"></i> Imposta / Modifica Classifica:</h5>
+                                            <div class="form-row">
+                                                <div class="form-group col-md-3">
+                                                    <label class="form-label font-bold" style="font-size: 11px;">1° Posto</label>
+                                                    <div class="select-wrapper">
+                                                        <select name="first" required style="font-size: 13px; padding: 6px 10px;">
+                                                            <option value="" disabled selected>-- 1° --</option>
+                                                            {% for team in [matchup.team1, matchup.team2, matchup.team3, matchup.team4] %}
+                                                                <option value="{{ team }}" {% if team == matchup.winner %}selected{% endif %}>{{ team }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label class="form-label font-bold" style="font-size: 11px;">2° Posto</label>
+                                                    <div class="select-wrapper">
+                                                        <select name="second" required style="font-size: 13px; padding: 6px 10px;">
+                                                            <option value="" disabled selected>-- 2° --</option>
+                                                            {% for team in [matchup.team1, matchup.team2, matchup.team3, matchup.team4] %}
+                                                                <option value="{{ team }}" {% if team == matchup.second_place %}selected{% endif %}>{{ team }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label class="form-label font-bold" style="font-size: 11px;">3° Posto</label>
+                                                    <div class="select-wrapper">
+                                                        <select name="third" required style="font-size: 13px; padding: 6px 10px;">
+                                                            <option value="" disabled selected>-- 3° --</option>
+                                                            {% for team in [matchup.team1, matchup.team2, matchup.team3, matchup.team4] %}
+                                                                <option value="{{ team }}" {% if team == matchup.third_place %}selected{% endif %}>{{ team }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group col-md-3">
+                                                    <label class="form-label font-bold" style="font-size: 11px;">4° Posto</label>
+                                                    <div class="select-wrapper">
+                                                        <select name="fourth" required style="font-size: 13px; padding: 6px 10px;">
+                                                            <option value="" disabled selected>-- 4° --</option>
+                                                            {% for team in [matchup.team1, matchup.team2, matchup.team3, matchup.team4] %}
+                                                                <option value="{{ team }}" {% if team == matchup.fourth_place %}selected{% endif %}>{{ team }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right mt-2" style="text-align: right; margin-top: 10px;">
+                                                <button type="submit" class="btn btn-primary btn-xs"><i class="fa-solid fa-floppy-disk"></i> Salva Classifica</button>
+                                            </div>
+                                        </form>
+                                    {% else %}
+                                        <!-- Torneo 2 squadre per matchup singolo -->
+                                        <div class="outcome-voting-container">
+                                            <p class="voting-instruction" style="font-size: 13px; color: var(--text-muted);"><i class="fa-solid fa-square-poll-horizontal"></i> Registra il risultato dell'abbinamento (clicca sulla squadra vincente):</p>
+                                            <div class="matchup-container-vote" style="margin: 12px 0;">
+                                                <!-- Pulsante Squadra 1 -->
+                                                <form action="{{ url_for('set_matchup_winner', activity_id=activity.id) }}" method="POST" class="team-vote-form">
+                                                    <input type="hidden" name="matchup_index" value="{{ loop.index0 }}">
+                                                    <input type="hidden" name="winner" value="{{ matchup.team1 }}">
+                                                    <button type="submit" class="matchup-team vote-btn {% if matchup.winner == matchup.team1 %}is-winner{% endif %}" style="padding: 10px; font-size: 13px;">
+                                                        <i class="fa-solid fa-shield-halved team-shield"></i>
+                                                        <span class="team-name">{{ matchup.team1 }}</span>
+                                                        {% if matchup.winner == matchup.team1 %}
+                                                            <span class="winner-crown" title="Vincitore"><i class="fa-solid fa-crown"></i></span>
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
+                                                
+                                                <div class="matchup-vs">VS</div>
+                                                
+                                                <!-- Pulsante Squadra 2 -->
+                                                <form action="{{ url_for('set_matchup_winner', activity_id=activity.id) }}" method="POST" class="team-vote-form">
+                                                    <input type="hidden" name="matchup_index" value="{{ loop.index0 }}">
+                                                    <input type="hidden" name="winner" value="{{ matchup.team2 }}">
+                                                    <button type="submit" class="matchup-team vote-btn {% if matchup.winner == matchup.team2 %}is-winner{% endif %}" style="padding: 10px; font-size: 13px;">
+                                                        <i class="fa-solid fa-shield-halved team-shield"></i>
+                                                        <span class="team-name">{{ matchup.team2 }}</span>
+                                                        {% if matchup.winner == matchup.team2 %}
+                                                            <span class="winner-crown" title="Vincitore"><i class="fa-solid fa-crown"></i></span>
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            
+                                            <!-- Pareggio -->
+                                            <div class="tie-vote-row mt-2 text-center" style="text-align: center; margin-top: 10px;">
+                                                <form action="{{ url_for('set_matchup_winner', activity_id=activity.id) }}" method="POST" class="inline-form">
+                                                    <input type="hidden" name="matchup_index" value="{{ loop.index0 }}">
+                                                    <input type="hidden" name="winner" value="Pareggio">
+                                                    <button type="submit" class="btn btn-xs {% if matchup.winner == 'Pareggio' %}btn-warning{% else %}btn-secondary-outline{% endif %}" style="padding: 6px 12px; font-size: 12px;">
+                                                        <i class="fa-solid fa-handshake"></i> {% if matchup.winner == 'Pareggio' %}Pareggio registrato{% else %}Segna come Pareggio{% endif %}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- Visualizzazione singola di fallback (attività con 1 solo abbinamento) -->
+                        {% if activity.activity_type == 'grande_gioco' %}
+                            <div class="outcome-voting-container">
+                                <p class="voting-instruction"><i class="fa-solid fa-list-ol"></i> Classifica del Grande Gioco (chiunque può compilare la classifica):</p>
+                                
+                                {% if activity.winner %}
+                                    <div class="current-ranking-display mb-4">
+                                        <ol class="ranking-ordered-list">
+                                            <li class="rank-item rank-1"><strong>1° Posto (200 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2"><i class="fa-solid fa-crown text-amber"></i> {{ activity.winner }}</span></li>
+                                            <li class="rank-item rank-2"><strong>2° Posto (150 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2">{{ activity.second_place or 'Non specificato' }}</span></li>
+                                            <li class="rank-item rank-3"><strong>3° Posto (100 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2">{{ activity.third_place or 'Non specificato' }}</span></li>
+                                            <li class="rank-item rank-4"><strong>4° Posto (50 pt):</strong> <span class="badge-category-mini badge-cat-gioco ml-2">{{ activity.fourth_place or 'Non specificato' }}</span></li>
+                                        </ol>
+                                    </div>
+                                {% else %}
+                                    <div class="no-winner-banner mb-3">
+                                        <i class="fa-solid fa-hourglass-half"></i> Classifica non ancora registrata.
+                                    </div>
+                                {% endif %}
+                                
+                                <form action="{{ url_for('set_ranking', activity_id=activity.id) }}" method="POST" class="ranking-selection-form card-container-glow p-4">
+                                    <h4 class="mb-3"><i class="fa-solid fa-pen-clip"></i> Imposta / Modifica Piazzamenti delle 4 Squadre:</h4>
+                                    <div class="form-row">
+                                        <div class="form-group col-md-3">
+                                            <label for="first" class="form-label font-bold">1° Posto (200 pt)</label>
+                                            <div class="select-wrapper">
+                                                <select name="first" id="first" required>
+                                                    <option value="" disabled selected>-- 1° --</option>
+                                                    {% for team in [activity.team1, activity.team2, activity.team3, activity.team4] %}
+                                                        <option value="{{ team }}" {% if team == activity.winner %}selected{% endif %}>{{ team }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="second" class="form-label font-bold">2° Posto (150 pt)</label>
+                                            <div class="select-wrapper">
+                                                <select name="second" id="second" required>
+                                                    <option value="" disabled selected>-- 2° --</option>
+                                                    {% for team in [activity.team1, activity.team2, activity.team3, activity.team4] %}
+                                                        <option value="{{ team }}" {% if team == activity.second_place %}selected{% endif %}>{{ team }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="third" class="form-label font-bold">3° Posto (100 pt)</label>
+                                            <div class="select-wrapper">
+                                                <select name="third" id="third" required>
+                                                    <option value="" disabled selected>-- 3° --</option>
+                                                    {% for team in [activity.team1, activity.team2, activity.team3, activity.team4] %}
+                                                        <option value="{{ team }}" {% if team == activity.third_place %}selected{% endif %}>{{ team }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-3">
+                                            <label for="fourth" class="form-label font-bold">4° Posto (50 pt)</label>
+                                            <div class="select-wrapper">
+                                                <select name="fourth" id="fourth" required>
+                                                    <option value="" disabled selected>-- 4° --</option>
+                                                    {% for team in [activity.team1, activity.team2, activity.team3, activity.team4] %}
+                                                        <option value="{{ team }}" {% if team == activity.fourth_place %}selected{% endif %}>{{ team }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right mt-3">
+                                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Salva Classifica</button>
+                                    </div>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="outcome-voting-container">
+                                <p class="voting-instruction"><i class="fa-solid fa-square-poll-horizontal"></i> Chi ha vinto? <strong>Clicca sul nome della squadra</strong> per votare la vittoria, oppure segna pareggio:</p>
+                                <div class="matchup-container-vote">
+                                    <!-- Pulsante Squadra 1 -->
+                                    <form action="{{ url_for('set_winner', activity_id=activity.id) }}" method="POST" class="team-vote-form">
+                                        <input type="hidden" name="winner" value="{{ activity.team1 }}">
+                                        <button type="submit" class="matchup-team vote-btn {% if activity.winner == activity.team1 %}is-winner{% endif %}">
+                                            <i class="fa-solid fa-shield-halved team-shield"></i>
+                                            <span class="team-name">{{ activity.team1 }}</span>
+                                            {% if activity.winner == activity.team1 %}
+                                                <span class="winner-crown" title="Vincitore"><i class="fa-solid fa-crown"></i></span>
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                    
+                                    <div class="matchup-vs">VS</div>
+                                    
+                                    <!-- Pulsante Squadra 2 -->
+                                    <form action="{{ url_for('set_winner', activity_id=activity.id) }}" method="POST" class="team-vote-form">
+                                        <input type="hidden" name="winner" value="{{ activity.team2 }}">
+                                        <button type="submit" class="matchup-team vote-btn {% if activity.winner == activity.team2 %}is-winner{% endif %}">
+                                            <i class="fa-solid fa-shield-halved team-shield"></i>
+                                            <span class="team-name">{{ activity.team2 }}</span>
+                                            {% if activity.winner == activity.team2 %}
+                                                <span class="winner-crown" title="Vincitore"><i class="fa-solid fa-crown"></i></span>
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <!-- Pareggio -->
+                                <div class="tie-vote-row mt-3 text-center">
+                                    <form action="{{ url_for('set_winner', activity_id=activity.id) }}" method="POST" class="inline-form">
+                                        <input type="hidden" name="winner" value="Pareggio">
+                                        <button type="submit" class="btn {% if activity.winner == 'Pareggio' %}btn-warning{% else %}btn-secondary-outline{% endif %}">
+                                            <i class="fa-solid fa-handshake"></i> 
+                                            {% if activity.winner == 'Pareggio' %}Partita Terminata in Pareggio (50 pt a testa){% else %}Segna come Pareggio (50 pt a testa){% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            <!-- Descrizione del Gioco / Note -->
+            {% if activity.description %}
+                <section class="detail-description-section">
+                    <h2><i class="fa-solid fa-file-lines icon-accent"></i> Descrizione dell'Attività</h2>
+                    <div class="description-text-box">
+                        <p>{{ activity.description }}</p>
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- Azioni Arbitro (Solo per Gioco) -->
+            {% if is_gioco %}
+                <section class="detail-actions-section">
+                    <h2><i class="fa-solid fa-user-shield icon-accent"></i> Arbitri del Gioco (Serve/servono {{ activity.referees_needed }} arbitro/i)</h2>
+                    
+                    <div class="referee-management-card">
+                        <!-- Lista degli arbitri prenotati -->
+                        <div class="referee-list-area">
+                            <h3><i class="fa-solid fa-users"></i> Arbitri attualmente registrati ({{ activity.referees | length }}/{{ activity.referees_needed }}):</h3>
+                            {% if activity.referees %}
+                                <div class="referee-list-grid">
+                                    {% for ref in activity.referees %}
+                                        <div class="referee-row">
+                                            <span class="referee-name"><i class="fa-solid fa-signature"></i> {{ ref }}</span>
+                                            <form action="{{ url_for('cancel_referee', activity_id=activity.id) }}" method="POST" class="inline-form">
+                                                <input type="hidden" name="referee_name" value="{{ ref }}">
+                                                <button type="submit" class="btn btn-outline-danger btn-xs" onclick="return confirm('Vuoi annullare la prenotazione per questo arbitro?');">
+                                                    <i class="fa-solid fa-user-minus"></i> Rilascia
+                                                </button>
+                                            </form>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="no-referees-text"><i class="fa-solid fa-user-slash"></i> Nessun arbitro prenotato per questa attività.</p>
+                            {% endif %}
+                        </div>
+
+                        <hr class="card-divider-light">
+
+                        <!-- Form di prenotazione se c'è posto -->
+                        {% if activity.referees | length < activity.referees_needed %}
+                            <div class="referee-status-info mt-4">
+                                <div class="ref-status-icon warning"><i class="fa-solid fa-user-plus"></i></div>
+                                <div>
+                                    <h3>Candidati come Arbitro!</h3>
+                                    <p>C'è ancora spazio disponibile. Inserisci il tuo nome per iscriverti come arbitro.</p>
+                                </div>
+                            </div>
+                            
+                            <form action="{{ url_for('book_referee', activity_id=activity.id) }}" method="POST" class="booking-form-detail mt-3">
+                                <div class="input-action-group">
+                                    <input type="text" name="referee_name" placeholder="Inserisci il tuo nome..." required 
+                                           value="{% if is_admin %}{{ session['username'] }}{% endif %}" class="form-control-detail">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fa-solid fa-signature"></i> Prenota Slot
+                                    </button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="referee-status-info mt-4">
+                                <div class="ref-status-icon success"><i class="fa-solid fa-check-double"></i></div>
+                                <div>
+                                    <h3>Posti per l'arbitraggio completati</h3>
+                                    <p>Tutti gli slot per gli arbitri sono occupati. Grazie per il tuo interesse!</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- Sezione Amministratore -->
+            {% if is_admin %}
+                <section class="detail-admin-section">
+                    <h2><i class="fa-solid fa-gears icon-accent"></i> Strumenti Amministratore</h2>
+                    <div class="admin-actions-box-new">
+                        <div class="admin-btns-row">
+                            <a href="{{ url_for('edit_activity', activity_id=activity.id) }}" class="btn btn-secondary-outline">
+                                <i class="fa-solid fa-pen-to-square"></i> Modifica Dettagli Attività
+                            </a>
+                            
+                            <form action="{{ url_for('delete_activity', activity_id=activity.id) }}" method="POST" 
+                                  onsubmit="return confirm('Sei assolutamente sicuro di voler eliminare questa attività dal calendario?');"
+                                  class="inline-form">
+                                <input type="hidden" name="back_week" value="{{ back_week }}">
+                                <input type="hidden" name="back_day" value="{{ back_day }}">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fa-solid fa-trash-can"></i> Elimina Attività
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+        </div>
+    </article>
+</div>
+{% endblock %}

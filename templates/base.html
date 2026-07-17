@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Gestionale Estate Macro{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="app-header">
+        <div class="container navbar">
+            <a href="{{ url_for('index') }}" class="logo">
+                <i class="fa-solid fa-sun icon-sun"></i>
+                <span>Macro<strong>Estate</strong></span>
+            </a>
+            
+            <!-- Navbar per Desktop -->
+            <nav class="nav-menu">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fa-solid fa-list-check"></i> Attività
+                </a>
+                <a href="{{ url_for('schedule') }}" class="nav-link {% if request.endpoint == 'schedule' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-days"></i> Orari
+                </a>
+                {% if is_admin %}
+                    <a href="{{ url_for('admin_leaderboard') }}" class="nav-link {% if request.endpoint == 'admin_leaderboard' %}active{% endif %}">
+                        <i class="fa-solid fa-trophy"></i> Punteggi
+                    </a>
+                    <a href="{{ url_for('create_activity') }}" class="nav-link nav-btn-primary {% if request.endpoint == 'create_activity' %}active{% endif %}">
+                        <i class="fa-solid fa-circle-plus"></i> Programma Attività
+                    </a>
+                {% endif %}
+            </nav>
+            
+            <div class="nav-auth">
+                {% if is_admin %}
+                    <span class="admin-badge"><i class="fa-solid fa-user-shield"></i> <span class="admin-username-label">Admin: <strong>{{ session['username'] }}</strong></span></span>
+                    <a href="{{ url_for('logout') }}" class="auth-btn logout" title="Esci"><i class="fa-solid fa-right-from-bracket"></i> <span class="auth-btn-label">Esci</span></a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="auth-btn login" title="Accedi"><i class="fa-solid fa-right-to-bracket"></i> <span class="auth-btn-label">Accedi Admin</span></a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        <!-- Messaggi Flash per notifiche utente -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">
+                            <div class="flash-icon">
+                                {% if category == 'success' %}
+                                    <i class="fa-solid fa-circle-check"></i>
+                                {% elif category == 'error' %}
+                                    <i class="fa-solid fa-circle-xmark"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-info"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flash-text">{{ message }}</div>
+                            <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Bottom Navigation Bar per Mobile (Visibile solo da Telefono) -->
+    <nav class="mobile-bottom-nav">
+        <a href="{{ url_for('index') }}" class="mobile-nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Attività</span>
+        </a>
+        <a href="{{ url_for('schedule') }}" class="mobile-nav-link {% if request.endpoint == 'schedule' %}active{% endif %}">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Orari</span>
+        </a>
+        {% if is_admin %}
+            <a href="{{ url_for('admin_leaderboard') }}" class="mobile-nav-link {% if request.endpoint == 'admin_leaderboard' %}active{% endif %}">
+                <i class="fa-solid fa-trophy"></i>
+                <span>Punteggi</span>
+            </a>
+            <a href="{{ url_for('create_activity') }}" class="mobile-nav-link {% if request.endpoint == 'create_activity' %}active{% endif %}">
+                <i class="fa-solid fa-circle-plus"></i>
+                <span>Pianifica</span>
+            </a>
+        {% endif %}
+    </nav>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2026 Estate Murialdo Macro - Centro Estivo.</p>
+        </div>
+    </footer>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

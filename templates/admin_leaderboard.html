@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Classifica Punteggi - CampHero{% endblock %}
+
+{% block content %}
+<section class="section-title-area">
+    <div class="section-header">
+        <h2><i class="fa-solid fa-trophy icon-accent text-amber"></i> Classifica Punteggi</h2>
+    </div>
+</section>
+
+<!-- Navigazione tra settimane -->
+<div class="week-navigation-bar">
+    <a href="{{ url_for('admin_leaderboard', week=prev_week) }}" class="btn-week-nav">
+        <i class="fa-solid fa-chevron-left"></i> Settimana Precedente
+    </a>
+    <div class="current-week-display">
+        <i class="fa-regular fa-calendar-check"></i>
+        <span>Settimana <strong>{{ week_range_str }}</strong></span>
+    </div>
+    <a href="{{ url_for('admin_leaderboard', week=next_week) }}" class="btn-week-nav">
+        Settimana Successiva <i class="fa-solid fa-chevron-right"></i>
+    </a>
+</div>
+
+<!-- Selettore rapido settimana via form -->
+<div class="week-selector-form-container mb-4">
+    <form action="{{ url_for('admin_leaderboard') }}" method="GET" class="inline-form">
+        <label for="week" class="form-label mr-2">Vai alla settimana:</label>
+        <div class="select-wrapper inline-select">
+            <select name="week" id="week" onchange="this.form.submit()">
+                {% for opt in weeks_options %}
+                    <option value="{{ opt.value }}" {% if opt.value == selected_week %}selected{% endif %}>{{ opt.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+<!-- Tabella Punteggi Matrix -->
+<div class="leaderboard-table-wrapper card-container-glow">
+    <table class="leaderboard-table">
+        <thead>
+            <tr>
+                <th class="team-col">Squadra</th>
+                {% for day in days %}
+                    <th>{{ day }}</th>
+                {% endfor %}
+                <th class="total-col"><i class="fa-solid fa-star"></i> Punti Totali</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in sorted_teams %}
+                {% set is_podium = loop.index == 1 %}
+                <tr class="{% if is_podium %}first-place-row{% endif %}">
+                    <td class="team-name-cell">
+                        <span class="team-index">{{ loop.index }}°</span>
+                        <strong class="team-title-text">{{ team }}</strong>
+                        {% if is_podium %}
+                            <span class="podium-crown" title="Capolista"><i class="fa-solid fa-crown"></i></span>
+                        {% endif %}
+                    </td>
+                    {% for day in days %}
+                        {% set pts = scores[team][day] %}
+                        <td class="points-cell {% if pts > 0 %}has-points{% endif %}">
+                            {{ pts }} <span class="pts-label">pt</span>
+                        </td>
+                    {% endfor %}
+                    <td class="total-points-cell">
+                        <strong>{{ totals[team] }}</strong> <span class="pts-label-total">pt</span>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Riepilogo Regole Punteggi -->
+<div class="scoring-rules-card mt-4">
+    <h4><i class="fa-solid fa-circle-info text-blue"></i> Regolamento Assegnazione Punti</h4>
+    <div class="rules-grid">
+        <div class="rule-item">
+            <strong>Incontri Torneo (2 Squadre):</strong>
+            <ul>
+                <li>Vittoria: <span class="text-success font-bold">+70 punti</span></li>
+                <li>Sconfitta: <span class="text-danger font-bold">+30 punti</span></li>
+                <li>Pareggio: <span class="text-warning font-bold">+50 punti</span> a testa</li>
+            </ul>
+        </div>
+        <div class="rule-item">
+            <strong>Incontri Grande Gioco (4 Squadre):</strong>
+            <ul>
+                <li>1° Classificato: <span class="text-success font-bold">+200 punti</span></li>
+                <li>2° Classificato: <span class="text-info font-bold">+150 punti</span></li>
+                <li>3° Classificato: <span class="text-warning font-bold">+100 punti</span></li>
+                <li>4° Classificato: <span class="text-slate font-bold">+50 punti</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

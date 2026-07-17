@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Attività - Estate Murialdo Macro{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="hero-content">
+        <h1>Estate Murialdo Macro</h1>
+        <p>Calendario e coordinamento delle attività giornaliere, gestione dei laboratori e registrazione dei punteggi delle sfide.</p>
+        <div class="hero-actions">
+            <a href="{{ url_for('schedule') }}" class="btn btn-secondary"><i class="fa-solid fa-calendar-days"></i> Tabellone Orario</a>
+            {% if is_admin %}
+                <a href="{{ url_for('create_activity') }}" class="btn btn-primary"><i class="fa-solid fa-circle-plus"></i> Programma Attività</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="section-title-area">
+    <div class="section-header">
+        <h2><i class="fa-solid fa-list-check icon-accent"></i> Programma Settimanale ({{ week_range_str }})</h2>
+    </div>
+</section>
+
+{% if activities %}
+    <!-- Raggruppamento delle attività per giorno -->
+    {% set ns = namespace(current_day='') %}
+    
+    <div class="activities-timeline">
+        {% for act in activities %}
+            {% if act.day_of_week != ns.current_day %}
+                {% set ns.current_day = act.day_of_week %}
+                <div class="day-divider">
+                    <span class="day-badge"><i class="fa-solid fa-calendar-day"></i> {{ act.day_of_week }}</span>
+                </div>
+            {% endif %}
+            
+            {% set is_gioco = act.category == 'gioco' %}
+            {% set is_cerchio = act.category == 'cerchio' %}
+            {% set refs_count = act.referees | length %}
+            {% set refs_full = refs_count >= act.referees_needed %}
+            
+            <div class="activity-card category-{{ act.category }} {% if is_gioco %}{% if refs_full %}has-referee{% else %}no-referee{% endif %}{% endif %}">
+                <div class="card-time-slot">
+                    <i class="fa-regular fa-clock"></i> {{ act.start_time }} - {{ act.end_time }}
+                </div>
+                
+                <div class="card-main">
+                    <div class="card-top-header">
+                        <div class="title-with-badge">
+                            <h3 class="activity-title">{{ act.title }}</h3>
+                            <span class="badge-category-mini badge-cat-{{ act.category }} ml-2">
+                                {% if act.category == 'gioco' %}Gioco
+                                {% elif act.category == 'gioco_evento' %}Gioco Evento
+                                {% elif act.category == 'cerchio' %}Cerchio
+                                {% elif act.category == 'laboratorio_sportivo' %}Lab Sportivo
+                                {% elif act.category == 'laboratorio_speciale' %}Lab Speciale
+                                {% elif act.category == 'pranzo' %}Pranzo
+                                {% elif act.category == 'compiti' %}Compiti
+                                {% else %}Pausa{% endif %}
+                            </span>
+                            
+                            {% if is_gioco and act.field %}
+                                <span class="badge-field-mini ml-1"><i class="fa-solid fa-location-dot"></i> {{ act.field }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Vincitore se presente (Solo per Gioco) -->
+                        {% if is_gioco and act.winner %}
+                            <span class="badge badge-success" title="Squadra Vincitrice"><i class="fa-solid fa-trophy"></i> Vincitore: <strong>{{ act.winner }}</strong></span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Squadre Sfidanti (Solo per Gioco) -->
+                    {% if is_gioco %}
+                        <div class="card-teams-display">
+                            <span class="teams-label">Sfida:</span>
+                            {% if act.activity_type == 'grande_gioco' %}
+                                <span class="teams-values grande-gioco-text">
+                                    <i class="fa-solid fa-flag"></i> {{ act.team1 }}, {{ act.team2 }}, {{ act.team3 }}, {{ act.team4 }}
+                                </span>
+                            {% else %}
+                                <span class="teams-values torneo-text">
+                                    <i class="fa-solid fa-shield-halved"></i> <strong>{{ act.team1 }}</strong> <span class="vs-text">vs</span> <strong>{{ act.team2 }}</strong>
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% elif is_cerchio and act.optional_activity %}
+                        <div class="card-optional-display">
+                            <span class="optional-label-text"><i class="fa-solid fa-star"></i> Attività Facoltativa: </span>
+                            <span class="optional-value-text"><strong>{{ act.optional_activity }}</strong></span>
+                        </div>
+                    {% endif %}
+
+                    {% if act.description %}
+                        <p class="activity-desc">{{ act.description | truncate(150) }}</p>
+                    {% endif %}
+                    
+                    <div class="card-footer">
+                        <div class="referee-status">
+                            {% if is_gioco %}
+                                {% if refs_full %}
+                                    <span class="referee-badge filled" title="{{ act.referees | join(', ') }}">
+                                        <i class="fa-solid fa-user-check"></i> Arbitri: <strong>{{ refs_count }}/{{ act.referees_needed }}</strong>
+                                    </span>
+                                {% else %}
+                                    <span class="referee-badge empty" title="{{ act.referees | join(', ') if act.referees else 'Nessuno' }}">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> Arbitri: <strong>{{ refs_count }}/{{ act.referees_needed }}</strong>
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="referee-badge-none">
+                                    <i class="fa-solid fa-calendar-check text-slate"></i> Nessun arbitraggio richiesto
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="actions">
+                            <a href="{{ url_for('activity_detail', activity_id=act.id, back_week=current_week, back_day=act.day_of_week) }}" class="btn btn-secondary-outline btn-sm">
+                                <i class="fa-solid fa-circle-info"></i> Visualizza Dettagli
+                            </a>
+                            
+                            {% if is_admin %}
+                                <form action="{{ url_for('delete_activity', activity_id=act.id) }}" method="POST" onsubmit="return confirm('Sei sicuro di voler rimuovere questa attività?');" class="inline-form ml-2">
+                                    <input type="hidden" name="back_week" value="{{ current_week }}">
+                                    <input type="hidden" name="back_day" value="{{ act.day_of_week }}">
+                                    <button type="submit" class="btn-icon btn-danger" title="Rimuovi attività">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fa-solid fa-sun-plant-wilt"></i></div>
+        <h3>Nessuna attività programmata</h3>
+        <p>Al momento non ci sono attività per questa settimana. {% if is_admin %}Inizia a programmarne una adesso!{% else %}Torna a trovarci più tardi o contatta un amministratore.{% endif %}</p>
+        {% if is_admin %}
+            <a href="{{ url_for('create_activity') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Aggiungi Attività</a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Orario Giornaliero - CampHero{% endblock %}
+
+{% block content %}
+<section class="section-title-area">
+    <div class="section-header">
+        <h2><i class="fa-solid fa-calendar-days icon-accent"></i> Tabellone Orario</h2>
+    </div>
+</section>
+
+<!-- Navigazione tra settimane -->
+<div class="week-navigation-bar">
+    <a href="{{ url_for('schedule', week=prev_week, day=selected_day) }}" class="btn-week-nav">
+        <i class="fa-solid fa-chevron-left"></i> Settimana Precedente
+    </a>
+    <div class="current-week-display">
+        <i class="fa-regular fa-calendar-check"></i>
+        <span>Settimana <strong>{{ week_range_str }}</strong></span>
+    </div>
+    <a href="{{ url_for('schedule', week=next_week, day=selected_day) }}" class="btn-week-nav">
+        Settimana Successiva <i class="fa-solid fa-chevron-right"></i>
+    </a>
+</div>
+
+<!-- Navigazione tra i giorni della settimana (Tabs) -->
+<div class="days-navigation-tabs">
+    {% for day in days %}
+        <a href="{{ url_for('schedule', week=selected_week, day=day) }}" 
+           class="day-tab-link {% if day == selected_day %}active{% endif %}">
+            <span class="day-name">{{ day }}</span>
+            <span class="day-date">{{ day_dates[day] }}</span>
+        </a>
+    {% endfor %}
+</div>
+
+<!-- Tabellone Giornaliero -->
+<div class="schedule-container">
+    <div class="day-schedule-header">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Programmazione di <strong>{{ selected_day }}</strong></h3>
+    </div>
+
+    {% if not activities %}
+        <div class="empty-schedule-notice">
+            <p><i class="fa-solid fa-calendar-day"></i> Nessuna attività programmata per questa giornata</p>
+        </div>
+    {% endif %}
+    <div class="schedule-table-wrapper">
+        <div class="iphone-calendar">
+            <!-- Asse temporale (ore) a sinistra -->
+            <div class="time-axis">
+                <div class="time-label" style="grid-row: 1;">09:00</div>
+                <div class="time-label" style="grid-row: 5;">10:00</div>
+                <div class="time-label" style="grid-row: 9;">11:00</div>
+                <div class="time-label" style="grid-row: 13;">12:00</div>
+                <div class="time-label" style="grid-row: 17;">13:00</div>
+                <div class="time-label" style="grid-row: 21;">14:00</div>
+                <div class="time-label" style="grid-row: 25;">15:00</div>
+                <div class="time-label" style="grid-row: 29;">16:00</div>
+                <div class="time-label last-label" style="grid-row: 32;">17:00</div>
+            </div>
+            
+            <!-- Griglia eventi a destra -->
+            <div class="calendar-events-grid">
+                <!-- Linee di griglia orizzontali in background -->
+                {% for i in range(1, 33) %}
+                    <div class="grid-line {% if (i - 1) % 4 == 0 %}hour-boundary{% endif %}" style="grid-row: {{ i }} / span 1;"></div>
+                {% endfor %}
+                <div class="grid-line hour-boundary last-line" style="grid-row: 33 / span 1;"></div>
+                
+                <!-- Eventi -->
+                {% for act in activities %}
+                    {% set is_gioco = act.category == 'gioco' %}
+                    {% set is_gioco_evento = act.category == 'gioco_evento' %}
+                    {% set is_cerchio = act.category == 'cerchio' %}
+                    
+                    {% set duration_slots = act.grid_row_end - act.grid_row_start %}
+                    <a href="{{ url_for('activity_detail', activity_id=act.id, back_week=selected_week, back_day=selected_day) }}" 
+                       class="grid-event category-{{ act.category }} {% if duration_slots == 1 %}event-15m{% endif %} {% if is_gioco %}{% if act.referees | length >= act.referees_needed %}assigned{% else %}free{% endif %}{% endif %}"
+                       style="grid-row: {{ act.grid_row_start }} / {{ act.grid_row_end }}; grid-column: {{ act.grid_col_start }} / {{ act.grid_col_end }};"
+                       title="Clicca per visualizzare i dettagli di {{ act.title }}">
+                        
+                        <div class="act-compact-header">
+                            <span class="act-compact-title">{{ act.title }}</span>
+                            <span class="act-compact-time"><i class="fa-regular fa-clock"></i> {{ act.start_time }} - {{ act.end_time }}</span>
+                        </div>
+                        
+                        <!-- Badge categoria -->
+                        <div class="act-compact-category mt-1">
+                            <span class="badge-category-mini badge-cat-{{ act.category }}">
+                                {% if act.category == 'gioco' %}
+                                    <i class="fa-solid fa-gamepad"></i> Gioco
+                                {% elif act.category == 'gioco_evento' %}
+                                    <i class="fa-solid fa-star"></i> Gioco Evento
+                                {% elif act.category == 'cerchio' %}
+                                    <i class="fa-solid fa-people-group"></i> Cerchio
+                                {% elif act.category == 'laboratorio_sportivo' %}
+                                    <i class="fa-solid fa-volleyball"></i> Lab Sportivo
+                                {% elif act.category == 'laboratorio_speciale' %}
+                                    <i class="fa-solid fa-puzzle-piece"></i> Lab Speciale
+                                {% elif act.category == 'pranzo' %}
+                                    <i class="fa-solid fa-utensils"></i> Pranzo
+                                {% elif act.category == 'compiti' %}
+                                    <i class="fa-solid fa-book-open"></i> Compiti
+                                {% else %}
+                                    <i class="fa-solid fa-mug-hot"></i> Pausa
+                                {% endif %}
+                            </span>
+                            
+                            {% if is_gioco and act.field %}
+                                <span class="badge-field-mini"><i class="fa-solid fa-location-dot"></i> {{ act.field }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Info squadre/vincitore o attività facoltativa -->
+                        {% if is_gioco %}
+                            <div class="act-compact-teams mt-1" style="font-size: 11px; line-height: 1.3;">
+                                {% if act.matchups and act.matchups | length > 1 %}
+                                    {% for matchup in act.matchups %}
+                                        <div class="matchup-row" style="margin-bottom: 2px;">
+                                            <span style="font-weight: 700; opacity: 0.85;">{{ matchup.start_time }}-{{ matchup.end_time }}:</span>
+                                            {% if act.activity_type == 'grande_gioco' %}
+                                                <span class="text-teams-compact">{{ matchup.team1 }} vs {{ matchup.team2 }} vs {{ matchup.team3 or '' }} vs {{ matchup.team4 or '' }}</span>
+                                                {% if matchup.winner %}
+                                                    <span class="text-winner-compact" style="display:block; margin-left: 10px;"><i class="fa-solid fa-trophy text-amber"></i> 1°: <strong>{{ matchup.winner }}</strong></span>
+                                                {% endif %}
+                                            {% else %}
+                                                {% if matchup.winner %}
+                                                    {% if matchup.winner == 'Pareggio' %}
+                                                        <span class="text-winner-compact"><i class="fa-solid fa-handshake text-amber"></i> Pareggio: <strong><span style="background-color: rgba(255,193,7,0.2); padding: 0 4px; border-radius: 3px;">{{ matchup.team1 }} + {{ matchup.team2 }}</span></strong></span>
+                                                    {% else %}
+                                                        <span class="text-winner-compact"><i class="fa-solid fa-trophy text-amber"></i> <strong>{{ matchup.winner }}</strong> (vs {{ matchup.team2 if matchup.winner == matchup.team1 else matchup.team1 }})</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-teams-compact">{{ matchup.team1 }} vs {{ matchup.team2 }}</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    {% if act.activity_type == 'grande_gioco' %}
+                                        <span class="text-teams-compact">{{ act.team1 }} vs {{ act.team2 }} vs {{ act.team3 or '' }} vs {{ act.team4 or '' }}</span>
+                                        {% if act.winner %}
+                                            <span class="text-winner-compact" style="display:block;"><i class="fa-solid fa-trophy text-amber"></i> 1°: <strong>{{ act.winner }}</strong></span>
+                                        {% endif %}
+                                    {% else %}
+                                        {% if act.winner %}
+                                            {% if act.winner == 'Pareggio' %}
+                                                <span class="text-winner-compact"><i class="fa-solid fa-handshake text-amber"></i> Pareggio: <strong><span style="background-color: rgba(255,193,7,0.2); padding: 0 4px; border-radius: 3px;">{{ act.team1 }} + {{ act.team2 }}</span></strong></span>
+                                            {% else %}
+                                                <span class="text-winner-compact"><i class="fa-solid fa-trophy text-amber"></i> Vince: <strong>{{ act.winner }}</strong></span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-teams-compact">{{ act.team1 }} vs {{ act.team2 }}</span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        {% elif is_cerchio and act.optional_activity %}
+                            <div class="act-compact-extra mt-1">
+                                <span class="text-extra-compact"><i class="fa-solid fa-star"></i> {{ act.optional_activity | truncate(30) }}</span>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Stato arbitraggio (Solo se Gioco) -->
+                        {% if is_gioco %}
+                            <div class="act-compact-status mt-1">
+                                {% set refs_count = act.referees | length %}
+                                {% if refs_count >= act.referees_needed %}
+                                    <span class="ref-compact-assigned" title="Arbitri al completo">
+                                        <i class="fa-solid fa-user-check"></i> Arbitri: {{ refs_count }}/{{ act.referees_needed }} {% if refs_count > 0 %}({{ act.referees | join(', ') }}){% endif %}
+                                    </span>
+                                {% else %}
+                                    <span class="ref-compact-free" title="Mancano arbitri!">
+                                        <i class="fa-solid fa-circle-exclamation"></i> Arbitri: {{ refs_count }}/{{ act.referees_needed }} {% if refs_count > 0 %}({{ act.referees | join(', ') }}){% endif %}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

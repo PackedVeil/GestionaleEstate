@@ -1,0 +1,573 @@
+{% extends 'base.html' %}
+
+{% block title %}Modifica Attività - CampHero{% endblock %}
+
+{% block content %}
+<section class="form-container-card">
+    <div class="form-header">
+        <h2><i class="fa-solid fa-calendar-minus icon-accent"></i> Modifica Attività</h2>
+        <p>Aggiorna i dettagli dell'attività programmata, gestisci le squadre o seleziona il vincitore dell'incontro.</p>
+    </div>
+    
+    <form action="{{ url_for('edit_activity', activity_id=activity.id) }}" method="POST" class="styled-form">
+        <!-- Selezione Categoria -->
+        <div class="form-group">
+            <label for="category" class="form-label font-bold">Categoria Attività</label>
+            <div class="select-wrapper">
+                <select name="category" id="category" onchange="handleCategoryChange(this.value)">
+                    <option value="gioco" {% if activity.category == 'gioco' %}selected{% endif %}>Gioco (Torneo, Arbitri, Squadre, Campo)</option>
+                    <option value="gioco_evento" {% if activity.category == 'gioco_evento' %}selected{% endif %}>Gioco Evento (Solo Titolo e Descrizione)</option>
+                    <option value="cerchio" {% if activity.category == 'cerchio' %}selected{% endif %}>Cerchio (Assemblea con Attività Facoltativa)</option>
+                    <option value="laboratorio_sportivo" {% if activity.category == 'laboratorio_sportivo' %}selected{% endif %}>Laboratorio Sportivo</option>
+                    <option value="laboratorio_speciale" {% if activity.category == 'laboratorio_speciale' %}selected{% endif %}>Laboratorio Speciale</option>
+                    <option value="intervallo" {% if activity.category == 'intervallo' %}selected{% endif %}>Intervallo (Pausa libera)</option>
+                    <option value="pranzo" {% if activity.category == 'pranzo' %}selected{% endif %}>Pranzo</option>
+                    <option value="compiti" {% if activity.category == 'compiti' %}selected{% endif %}>Compiti</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Titolo e descrizione (Mostrati solo per Gioco) -->
+        <div class="form-group" id="title-group">
+            <label for="title" class="form-label">Titolo Gioco</label>
+            <input type="text" name="title" id="title" value="{{ activity.title }}" class="form-control">
+        </div>
+        
+        <div class="form-group" id="desc-group">
+            <label for="description" class="form-label">Descrizione / Note Gioco</label>
+            <textarea name="description" id="description" rows="3" class="form-control">{{ activity.description }}</textarea>
+        </div>
+
+        <hr class="form-divider" id="divider-gioco">
+
+        <!-- SEZIONE GIOCO -->
+        <div id="section-gioco" class="form-section transition-section {% if activity.category != 'gioco' %}hidden{% endif %}">
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="field" class="form-label">Campo di Gioco / Location</label>
+                    <input type="text" name="field" id="field" placeholder="es. Cortile, Palestra..." value="{{ activity.field or '' }}" class="form-control">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="referees_needed" class="form-label">Arbitri Necessari</label>
+                    <input type="number" name="referees_needed" id="referees_needed" min="1" max="10" value="{{ activity.referees_needed }}" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label for="activity_type" class="form-label">Tipo di Torneo</label>
+                <div class="select-wrapper">
+                    <select name="activity_type" id="activity_type" onchange="toggleActivityType(this.value)">
+                        <option value="torneo" {% if activity.activity_type == 'torneo' %}selected{% endif %}>Torneo (2 Squadre)</option>
+                        <option value="grande_gioco" {% if activity.activity_type == 'grande_gioco' %}selected{% endif %}>Grande Gioco (4 Squadre)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Abbinamenti di Squadre Schedulate -->
+            <div class="form-group mt-3" id="matchups-wrapper">
+                <label class="form-label font-bold d-flex justify-content-between align-items-center" style="margin-bottom: 8px;">
+                    <span>Abbinamenti di Squadre sfidanti</span>
+                    <button type="button" class="btn btn-secondary-outline btn-xs" id="btn-add-matchup" style="font-size: 11px; padding: 4px 10px; cursor: pointer;">
+                        <i class="fa-solid fa-plus"></i> Aggiungi Abbinamento
+                    </button>
+                </label>
+                <div id="matchups-container">
+                    {% if activity.matchups %}
+                        {% for matchup in activity.matchups %}
+                            <div class="matchup-card card-container-glow p-3 mb-3" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #fafbfc; margin-bottom: 12px; padding: 15px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2" style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                    <strong class="matchup-title" style="font-family: var(--font-heading); color: var(--text-main);">Abbinamento {{ loop.index }}</strong>
+                                    {% if loop.index > 1 %}
+                                        <button type="button" class="btn btn-cancel-ref btn-xs btn-remove-matchup" style="background-color: var(--danger-light); color: var(--danger-color); border:none; border-radius:3px; padding: 2px 6px; cursor:pointer;">
+                                            <i class="fa-solid fa-trash"></i> Rimuovi
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <div class="select-wrapper">
+                                            <select name="team1" class="form-control team-input" required>
+                                                <option value="" disabled {% if not matchup.team1 %}selected{% endif %}>-- Squadra 1 --</option>
+                                                {% for team in PREDEFINED_TEAMS %}
+                                                    <option value="{{ team }}" {% if matchup.team1 == team %}selected{% endif %}>{{ team }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <div class="select-wrapper">
+                                            <select name="team2" class="form-control team-input" required>
+                                                <option value="" disabled {% if not matchup.team2 %}selected{% endif %}>-- Squadra 2 --</option>
+                                                {% for team in PREDEFINED_TEAMS %}
+                                                    <option value="{{ team }}" {% if matchup.team2 == team %}selected{% endif %}>{{ team }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-row mt-2 extra-teams-row {% if activity.activity_type != 'grande_gioco' %}hidden{% endif %}">
+                                    <div class="form-group col-md-6">
+                                        <div class="select-wrapper">
+                                            <select name="team3" class="form-control team-input team3-input" {% if activity.activity_type == 'grande_gioco' %}required{% endif %}>
+                                                <option value="" disabled {% if not matchup.team3 %}selected{% endif %}>-- Squadra 3 --</option>
+                                                {% for team in PREDEFINED_TEAMS %}
+                                                    <option value="{{ team }}" {% if matchup.team3 == team %}selected{% endif %}>{{ team }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <div class="select-wrapper">
+                                            <select name="team4" class="form-control team-input team4-input" {% if activity.activity_type == 'grande_gioco' %}required{% endif %}>
+                                                <option value="" disabled {% if not matchup.team4 %}selected{% endif %}>-- Squadra 4 --</option>
+                                                {% for team in PREDEFINED_TEAMS %}
+                                                    <option value="{{ team }}" {% if matchup.team4 == team %}selected{% endif %}>{{ team }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="matchup-card card-container-glow p-3 mb-3" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #fafbfc; margin-bottom: 12px; padding: 15px;">
+                            <div class="d-flex justify-content-between align-items-center mb-2" style="margin-bottom: 10px;">
+                                <strong class="matchup-title" style="font-family: var(--font-heading); color: var(--text-main);">Abbinamento 1</strong>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <div class="select-wrapper">
+                                        <select name="team1" class="form-control team-input" required>
+                                            <option value="" disabled selected>-- Squadra 1 --</option>
+                                            {% for team in PREDEFINED_TEAMS %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <div class="select-wrapper">
+                                        <select name="team2" class="form-control team-input" required>
+                                            <option value="" disabled selected>-- Squadra 2 --</option>
+                                            {% for team in PREDEFINED_TEAMS %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row mt-2 extra-teams-row hidden">
+                                <div class="form-group col-md-6">
+                                    <div class="select-wrapper">
+                                        <select name="team3" class="form-control team-input team3-input">
+                                            <option value="" disabled selected>-- Squadra 3 --</option>
+                                            {% for team in PREDEFINED_TEAMS %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <div class="select-wrapper">
+                                        <select name="team4" class="form-control team-input team4-input">
+                                            <option value="" disabled selected>-- Squadra 4 --</option>
+                                            {% for team in PREDEFINED_TEAMS %}
+                                                <option value="{{ team }}">{{ team }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Vincitore dell'Incontro / Classifica -->
+            <div class="form-group mt-3" id="winner-group">
+                <label for="winner" class="form-label font-bold"><i class="fa-solid fa-trophy text-amber"></i> Seleziona Vincitore / 1° Posto</label>
+                <div class="select-wrapper">
+                    <select name="winner" id="winner">
+                        <option value="">-- Nessun vincitore / Pareggio / In corso --</option>
+                        <!-- Popolato dinamicamente via JS -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row mt-2 {% if activity.activity_type != 'grande_gioco' %}hidden{% endif %}" id="extra-places-row">
+                <div class="form-group col-md-4">
+                    <label for="second_place" class="form-label font-bold">2° Posto (150 pt)</label>
+                    <div class="select-wrapper">
+                        <select name="second_place" id="second_place">
+                            <option value="">-- 2° Posto --</option>
+                            <!-- Popolato dinamicamente via JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="third_place" class="form-label font-bold">3° Posto (100 pt)</label>
+                    <div class="select-wrapper">
+                        <select name="third_place" id="third_place">
+                            <option value="">-- 3° Posto --</option>
+                            <!-- Popolato dinamicamente via JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="fourth_place" class="form-label font-bold">4° Posto (50 pt)</label>
+                    <div class="select-wrapper">
+                        <select name="fourth_place" id="fourth_place">
+                            <option value="">-- 4° Posto --</option>
+                            <!-- Popolato dinamicamente via JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE CERCHIO -->
+        <div id="section-cerchio" class="form-section transition-section {% if activity.category != 'cerchio' %}hidden{% endif %}">
+            <div class="form-group">
+                <label for="optional_activity" class="form-label">Attività Facoltativa (es: Canti, Preghiera, Riflessione)</label>
+                <input type="text" name="optional_activity" id="optional_activity" value="{{ activity.optional_activity or '' }}" placeholder="es. Canti di animazione..." class="form-control">
+            </div>
+        </div>
+
+        <hr class="form-divider">
+
+        <!-- Programmazione Temporale -->
+        <div class="form-group">
+            <label for="week_start" class="form-label">Settimana</label>
+            <div class="select-wrapper">
+                <select name="week_start" id="week_start" required>
+                    {% for opt in weeks_options %}
+                        <option value="{{ opt.value }}" {% if opt.value == activity.week_start %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="day_of_week" class="form-label">Giorno</label>
+                <div class="select-wrapper">
+                    <select name="day_of_week" id="day_of_week" required>
+                        {% for day in days %}
+                            <option value="{{ day }}" {% if day == activity.day_of_week %}selected{% endif %}>{{ day }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group col-md-4">
+                <label for="start_time" class="form-label">Ora Inizio</label>
+                <div class="select-wrapper">
+                    <select name="start_time" id="start_time" required>
+                        {% for start, end in TIME_SLOTS %}
+                            <option value="{{ start }}" {% if start == activity.start_time %}selected{% endif %}>{{ start }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group col-md-4">
+                <label for="end_time" class="form-label">Ora Fine</label>
+                <div class="select-wrapper">
+                    <select name="end_time" id="end_time" required>
+                        {% for start, end in TIME_SLOTS %}
+                            <option value="{{ end }}" {% if end == activity.end_time %}selected{% endif %}>{{ end }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions mt-4">
+            <a href="{{ url_for('activity_detail', activity_id=activity.id, back_week=activity.week_start, back_day=activity.day_of_week) }}" class="btn btn-secondary-outline"><i class="fa-solid fa-arrow-left"></i> Annulla</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Salva Modifiche</button>
+        </div>
+    </form>
+</section>
+
+<script>
+    const initialWinner = "{{ activity.winner or '' }}";
+    const initialSecond = "{{ activity.second_place or '' }}";
+    const initialThird = "{{ activity.third_place or '' }}";
+    const initialFourth = "{{ activity.fourth_place or '' }}";
+    
+    const predefinedTeams = {{ PREDEFINED_TEAMS | tojson }};
+    const teamOptionsHtml = predefinedTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+
+    function handleCategoryChange(category) {
+        const sectionGioco = document.getElementById('section-gioco');
+        const sectionCerchio = document.getElementById('section-cerchio');
+        const titleGroup = document.getElementById('title-group');
+        const descGroup = document.getElementById('desc-group');
+        const dividerGioco = document.getElementById('divider-gioco');
+        
+        const team1s = document.querySelectorAll('[name="team1"]');
+        const team2s = document.querySelectorAll('[name="team2"]');
+        const team3s = document.querySelectorAll('[name="team3"]');
+        const team4s = document.querySelectorAll('[name="team4"]');
+
+        if (category === 'gioco') {
+            sectionGioco.classList.remove('hidden');
+            titleGroup.classList.remove('hidden');
+            descGroup.classList.remove('hidden');
+            dividerGioco.classList.remove('hidden');
+            sectionCerchio.classList.add('hidden');
+            
+            // Ripristina required sui campi del gioco
+            team1s.forEach(t => t.setAttribute('required', 'required'));
+            team2s.forEach(t => t.setAttribute('required', 'required'));
+            document.getElementById('title').removeAttribute('required');
+            toggleActivityType(document.getElementById('activity_type').value);
+        } else if (category === 'gioco_evento') {
+            sectionGioco.classList.add('hidden');
+            titleGroup.classList.remove('hidden');
+            descGroup.classList.remove('hidden');
+            dividerGioco.classList.add('hidden');
+            sectionCerchio.classList.add('hidden');
+            
+            // Rimuovi required dai campi del gioco per permettere l'invio del form
+            team1s.forEach(t => t.removeAttribute('required'));
+            team2s.forEach(t => t.removeAttribute('required'));
+            team3s.forEach(t => t.removeAttribute('required'));
+            team4s.forEach(t => t.removeAttribute('required'));
+            
+            // Rendi obbligatorio il titolo
+            document.getElementById('title').setAttribute('required', 'required');
+        } else {
+            sectionGioco.classList.add('hidden');
+            titleGroup.classList.add('hidden');
+            descGroup.classList.add('hidden');
+            dividerGioco.classList.add('hidden');
+            
+            // Rimuovi required dai campi del gioco per permettere l'invio del form
+            team1s.forEach(t => t.removeAttribute('required'));
+            team2s.forEach(t => t.removeAttribute('required'));
+            team3s.forEach(t => t.removeAttribute('required'));
+            team4s.forEach(t => t.removeAttribute('required'));
+            
+            document.getElementById('title').removeAttribute('required');
+
+            if (category === 'cerchio') {
+                sectionCerchio.classList.remove('hidden');
+            } else {
+                sectionCerchio.classList.add('hidden');
+            }
+        }
+    }
+
+    function toggleActivityType(type) {
+        if (document.getElementById('category').value !== 'gioco') return;
+
+        const extraTeamsRows = document.querySelectorAll('.extra-teams-row');
+        const extraPlacesRow = document.getElementById('extra-places-row');
+        const team3s = document.querySelectorAll('.team3-input');
+        const team4s = document.querySelectorAll('.team4-input');
+        
+        if (type === 'grande_gioco') {
+            extraTeamsRows.forEach(row => row.classList.remove('hidden'));
+            if (extraPlacesRow) extraPlacesRow.classList.remove('hidden');
+            team3s.forEach(t3 => t3.setAttribute('required', 'required'));
+            team4s.forEach(t4 => t4.setAttribute('required', 'required'));
+        } else {
+            extraTeamsRows.forEach(row => row.classList.add('hidden'));
+            if (extraPlacesRow) extraPlacesRow.classList.add('hidden');
+            team3s.forEach(t3 => {
+                t3.removeAttribute('required');
+                t3.value = '';
+            });
+            team4s.forEach(t4 => {
+                t4.removeAttribute('required');
+                t4.value = '';
+            });
+            
+            // Resetta i dropdown della classifica aggiuntiva
+            if (document.getElementById('second_place')) document.getElementById('second_place').value = '';
+            if (document.getElementById('third_place')) document.getElementById('third_place').value = '';
+            if (document.getElementById('fourth_place')) document.getElementById('fourth_place').value = '';
+        }
+        updateWinnerDropdown();
+    }
+
+    function updateWinnerDropdown() {
+        const activityType = document.getElementById('activity_type').value;
+        const category = document.getElementById('category').value;
+        
+        if (category !== 'gioco') return;
+
+        const matchupsContainer = document.getElementById('matchups-container');
+        if (!matchupsContainer) return;
+        const numMatchups = matchupsContainer.children.length;
+        
+        const winnerGroup = document.getElementById('winner-group');
+        const extraPlacesRow = document.getElementById('extra-places-row');
+
+        // If there are multiple matchups, hide the winner select dropdowns in the edit view
+        if (numMatchups > 1) {
+            if (winnerGroup) winnerGroup.classList.add('hidden');
+            if (extraPlacesRow) extraPlacesRow.classList.add('hidden');
+            return;
+        } else {
+            if (winnerGroup) winnerGroup.classList.remove('hidden');
+            if (extraPlacesRow && activityType === 'grande_gioco') {
+                extraPlacesRow.classList.remove('hidden');
+            }
+        }
+        
+        const dropdowns = [
+            { el: document.getElementById('winner'), val: initialWinner },
+            { el: document.getElementById('second_place'), val: initialSecond },
+            { el: document.getElementById('third_place'), val: initialThird },
+            { el: document.getElementById('fourth_place'), val: initialFourth }
+        ];
+        
+        const firstCard = matchupsContainer.children[0];
+        if (!firstCard) return;
+
+        const teamSelects = [
+            firstCard.querySelector('[name="team1"]'),
+            firstCard.querySelector('[name="team2"]')
+        ];
+        
+        if (activityType === 'grande_gioco') {
+            teamSelects.push(firstCard.querySelector('[name="team3"]'));
+            teamSelects.push(firstCard.querySelector('[name="team4"]'));
+        }
+        
+        dropdowns.forEach((dropdown) => {
+            const selectEl = dropdown.el;
+            if (!selectEl) return;
+            const currentValue = selectEl.value || dropdown.val;
+            
+            while (selectEl.options.length > 1) {
+                selectEl.remove(1);
+            }
+            
+            teamSelects.forEach((select) => {
+                if (!select) return;
+                const name = select.value;
+                if (name) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    if (name === currentValue) {
+                        opt.selected = true;
+                    }
+                    selectEl.appendChild(opt);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const category = document.getElementById('category').value;
+        handleCategoryChange(category);
+        
+        const btnAddMatchup = document.getElementById('btn-add-matchup');
+        const matchupsContainer = document.getElementById('matchups-container');
+
+        // Attacca i listener di rimozione per le card pre-caricate
+        if (matchupsContainer) {
+            matchupsContainer.querySelectorAll('.btn-remove-matchup').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const card = e.target.closest('.matchup-card');
+                    if (card) {
+                        card.remove();
+                        const cards = matchupsContainer.querySelectorAll('.matchup-card');
+                        cards.forEach((c, index) => {
+                            c.querySelector('.matchup-title').textContent = `Abbinamento ${index + 1}`;
+                        });
+                        updateWinnerDropdown();
+                    }
+                });
+            });
+            
+            // Event delegation per l'aggiornamento del vincitore al cambio del testo
+            matchupsContainer.addEventListener('input', (e) => {
+                if (e.target.classList.contains('team-input')) {
+                    updateWinnerDropdown();
+                }
+            });
+        }
+
+        if (btnAddMatchup && matchupsContainer) {
+            btnAddMatchup.addEventListener('click', () => {
+                const count = matchupsContainer.children.length + 1;
+                const activityTypeSelect = document.getElementById('activity_type');
+                const activityType = activityTypeSelect ? activityTypeSelect.value : 'torneo';
+                const isGrandeGioco = (activityType === 'grande_gioco');
+                
+                const card = document.createElement('div');
+                card.className = 'matchup-card card-container-glow p-3 mb-3';
+                card.style.border = '1px solid var(--border-color)';
+                card.style.borderRadius = 'var(--radius-md)';
+                card.style.background = '#fafbfc';
+                card.style.marginBottom = '12px';
+                card.style.padding = '15px';
+                
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <strong class="matchup-title" style="font-family: var(--font-heading); color: var(--text-main);">Abbinamento ${count}</strong>
+                        <button type="button" class="btn btn-cancel-ref btn-xs btn-remove-matchup" style="background-color: var(--danger-light); color: var(--danger-color); border:none; border-radius:3px; padding: 2px 6px; cursor:pointer;">
+                            <i class="fa-solid fa-trash"></i> Rimuovi
+                        </button>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <div class="select-wrapper">
+                                <select name="team1" class="form-control team-input" required>
+                                    <option value="" disabled selected>-- Squadra 1 --</option>
+                                    ${teamOptionsHtml}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <div class="select-wrapper">
+                                <select name="team2" class="form-control team-input" required>
+                                    <option value="" disabled selected>-- Squadra 2 --</option>
+                                    ${teamOptionsHtml}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row mt-2 extra-teams-row ${isGrandeGioco ? '' : 'hidden'}">
+                        <div class="form-group col-md-6">
+                            <div class="select-wrapper">
+                                <select name="team3" class="form-control team-input team3-input" ${isGrandeGioco ? 'required' : ''}>
+                                    <option value="" disabled selected>-- Squadra 3 --</option>
+                                    ${teamOptionsHtml}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <div class="select-wrapper">
+                                <select name="team4" class="form-control team-input team4-input" ${isGrandeGioco ? 'required' : ''}>
+                                    <option value="" disabled selected>-- Squadra 4 --</option>
+                                    ${teamOptionsHtml}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                card.querySelector('.btn-remove-matchup').addEventListener('click', () => {
+                    card.remove();
+                    const cards = matchupsContainer.querySelectorAll('.matchup-card');
+                    cards.forEach((c, index) => {
+                        c.querySelector('.matchup-title').textContent = `Abbinamento ${index + 1}`;
+                    });
+                    updateWinnerDropdown();
+                });
+                
+                matchupsContainer.appendChild(card);
+                updateWinnerDropdown();
+            });
+        }
+        
+        updateWinnerDropdown();
+    });
+</script>
+{% endblock %}
