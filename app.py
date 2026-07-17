@@ -6,6 +6,8 @@ from functools import wraps
 import database
 import json
 
+#aggiungi commento
+
 def add_minutes_to_time(time_str, minutes):
     try:
         t = datetime.strptime(time_str, "%H:%M")
