@@ -121,6 +121,12 @@ def get_monday(date_obj):
     """Restituisce la data del Lunedì della settimana a cui appartiene la data fornita."""
     return date_obj - timedelta(days=date_obj.weekday())
 
+def get_default_week(date_obj):
+    monday = date_obj - timedelta(days=date_obj.weekday())
+    if date_obj.weekday() >= 5:  # Sabato (5) o Domenica (6)
+        monday += timedelta(days=7)
+    return monday
+
 def time_to_grid_row(time_str):
     """Calcola la riga iniziale della griglia CSS in base all'ora HH:MM (dalle 09:00 in poi, slot di 15m)"""
     try:
@@ -230,7 +236,7 @@ def index():
     age_group = session['age_group']
     # Mostra per default le attività della settimana corrente
     today = datetime.now().date()
-    current_monday = get_monday(today)
+    current_monday = get_default_week(today)
     current_monday_str = current_monday.strftime('%Y-%m-%d')
     current_friday = current_monday + timedelta(days=4)
     
@@ -259,7 +265,7 @@ def schedule():
     day_param = request.args.get('day')
     
     today = datetime.now().date()
-    current_monday = get_monday(today)
+    current_monday = get_default_week(today)
     
     selected_monday = current_monday
     if week_param:
@@ -356,17 +362,17 @@ def cancel_referee(activity_id):
 @category_required
 def create_activity():
     today = datetime.now().date()
-    current_monday = get_monday(today)
+    current_monday = get_default_week(today)
     
     if request.method == 'POST':
         category = request.form.get('category', 'gioco')
-        day_of_week = request.form.get('day_of_week')
+        days_of_week = request.form.getlist('days_of_week')
         start_time = request.form.get('start_time')
         end_time = request.form.get('end_time')
         week_start = request.form.get('week_start')
         
-        if not day_of_week or not start_time or not end_time or not week_start:
-            flash('Tutti i parametri temporali sono obbligatori.', 'error')
+        if not days_of_week or not start_time or not end_time or not week_start:
+            flash('Tutti i parametri temporali (inclusi i giorni della settimana) sono obbligatori.', 'error')
             return redirect(url_for('create_activity'))
             
         if start_time >= end_time:
@@ -490,14 +496,15 @@ def create_activity():
             flash('Categoria non supportata.', 'error')
             return redirect(url_for('create_activity'))
             
-        # Salva nel DB
-        database.schedule_activity(
-            catalog_id, title, description, day_of_week, start_time, end_time, week_start,
-            category, optional_activity, field, referees_needed, activity_type,
-            team1, team2, team3, team4, matchups_json, age_group=session['age_group']
-        )
-        flash(f'Attività "{title}" programmata con successo!', 'success')
-        return redirect(url_for('schedule', week=week_start, day=day_of_week))
+        # Salva nel DB per ciascun giorno selezionato
+        for day in days_of_week:
+            database.schedule_activity(
+                catalog_id, title, description, day, start_time, end_time, week_start,
+                category, optional_activity, field, referees_needed, activity_type,
+                team1, team2, team3, team4, matchups_json, age_group=session['age_group']
+            )
+        flash(f'Attività "{title}" programmata con successo per {len(days_of_week)} giorni!', 'success')
+        return redirect(url_for('schedule', week=week_start, day=days_of_week[0]))
         
     catalog = database.get_catalog_activities()
     
@@ -511,7 +518,7 @@ def create_activity():
             'label': f"Settimana {mon.strftime('%d/%m/%Y')} - {sun.strftime('%d/%m/%Y')}"
         })
         
-    return render_template('create.html', catalog=catalog, days=DAY_NAMES, weeks_options=weeks_options)
+    return render_template('create.html', catalog=catalog, days=DAY_NAMES, weeks_options=weeks_options, today_weekday=today.weekday())
 
 @app.route('/activity/<int:activity_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -889,7 +896,7 @@ def set_matchup_ranking(activity_id):
 def admin_leaderboard():
     week_param = request.args.get('week')
     today = datetime.now().date()
-    current_monday = get_monday(today)
+    current_monday = get_default_week(today)
     
     selected_monday = current_monday
     if week_param:

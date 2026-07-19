@@ -195,17 +195,16 @@
                 </select>
             </div>
         </div>
-
         <div class="form-row">
             <div class="form-group col-md-4">
-                <label for="day_of_week" class="form-label">Giorno</label>
-                <div class="select-wrapper">
-                    <select name="day_of_week" id="day_of_week" required>
-                        <option value="" disabled selected>-- Giorno --</option>
-                        {% for day in days %}
-                            <option value="{{ day }}">{{ day }}</option>
-                        {% endfor %}
-                    </select>
+                <label class="form-label font-bold">Giorni della Settimana</label>
+                <div class="checkbox-group" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 8px;">
+                    {% for day in days %}
+                        <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 12px; background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 14px; transition: var(--transition);">
+                            <input type="checkbox" name="days_of_week" value="{{ day }}" class="day-checkbox">
+                            <span>{{ day }}</span>
+                        </label>
+                    {% endfor %}
                 </div>
             </div>
             
@@ -385,6 +384,73 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         handleCategoryChange('gioco');
+        
+        // Controllo intelligente del giorno per proporre la settimana successiva
+        const todayWeekday = {{ today_weekday | tojson }};
+        const weekSelect = document.getElementById('week_start');
+        
+        function updateWeekSelection() {
+            if (!weekSelect || todayWeekday >= 5) return;
+            
+            const checkboxes = document.querySelectorAll('.day-checkbox:checked');
+            if (checkboxes.length === 0) return;
+            
+            const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì'];
+            
+            // Trova l'indice minimo (giorno più a inizio settimana) tra quelli selezionati
+            let minIndex = 999;
+            checkboxes.forEach(cb => {
+                const idx = daysOfWeek.indexOf(cb.value);
+                if (idx !== -1 && idx < minIndex) {
+                    minIndex = idx;
+                }
+            });
+            
+            if (minIndex !== 999) {
+                if (minIndex < todayWeekday) {
+                    if (weekSelect.options.length > 1 && weekSelect.selectedIndex === 0) {
+                        weekSelect.selectedIndex = 1;
+                    }
+                } else {
+                    if (weekSelect.options.length > 1 && weekSelect.selectedIndex === 1) {
+                        weekSelect.selectedIndex = 0;
+                    }
+                }
+            }
+        }
+        
+        const dayCheckboxes = document.querySelectorAll('.day-checkbox');
+        dayCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                updateWeekSelection();
+                
+                // Highlight label style
+                const label = cb.closest('label');
+                if (cb.checked) {
+                    label.style.borderColor = 'var(--primary-color)';
+                    label.style.backgroundColor = 'var(--primary-light)';
+                    label.style.color = 'var(--primary-hover)';
+                    label.style.fontWeight = '600';
+                } else {
+                    label.style.borderColor = 'var(--border-color)';
+                    label.style.backgroundColor = '#fff';
+                    label.style.color = 'inherit';
+                    label.style.fontWeight = 'normal';
+                }
+            });
+        });
+        
+        // Enforce day selection on form submit
+        const form = document.querySelector('.styled-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const checkedDays = document.querySelectorAll('.day-checkbox:checked');
+                if (checkedDays.length === 0) {
+                    e.preventDefault();
+                    alert('Seleziona almeno un giorno della settimana prima di salvare.');
+                }
+            });
+        }
         
         const btnAddMatchup = document.getElementById('btn-add-matchup');
         const matchupsContainer = document.getElementById('matchups-container');
