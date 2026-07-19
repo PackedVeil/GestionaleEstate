@@ -6,8 +6,7 @@ from functools import wraps
 import database
 import json
 
-#aggiungi commento
-#prova coomento per push
+#aggiunta commento per prova
 
 def add_minutes_to_time(time_str, minutes):
     try:
@@ -58,11 +57,26 @@ with app.app_context():
 # Nomi dei giorni in italiano (Solo feriali: da Lunedì a Venerdì)
 DAY_NAMES = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì']
 
-# Squadre predefinite
+def get_teams_for_category(category):
+    if not category:
+        return []
+    colors = ['Blu', 'Rossi', 'Verdi', 'Gialli']
+    return [f"{category}{color}" for color in colors]
+
+# Squadre predefinite (fallback per scopi globali)
 PREDEFINED_TEAMS = [
     'macroRossi', 'macroVerdi', 'macroGialli', 'macroBlu',
     'MagnumRossi', 'MagnumVerdi', 'MagnumGialli', 'MagnumBlu'
 ]
+
+def category_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'age_group' not in session:
+            flash('Seleziona prima una categoria d\'età per procedere.', 'info')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Fasce orarie da 15 minuti (dalle 09:00 alle 17:00)
 TIME_SLOTS = [
@@ -196,26 +210,48 @@ def login_required(f):
 # Context processor per rendere disponibili le variabili globali nei template Jinja2
 @app.context_processor
 def inject_globals():
+    age_group = session.get('age_group')
+    teams = get_teams_for_category(age_group) if age_group else []
     return dict(
         is_admin=('user_id' in session),
-        PREDEFINED_TEAMS=PREDEFINED_TEAMS,
-        TIME_SLOTS=TIME_SLOTS
+        PREDEFINED_TEAMS=teams,
+        TIME_SLOTS=TIME_SLOTS,
+        selected_age_group=age_group,
+        CATEGORIES=['micro', 'mini', 'medi', 'maxi', 'mega', 'macro']
     )
 
 @app.route('/')
 def index():
+    if 'age_group' not in session:
+        return render_template('select_category.html')
+        
+    age_group = session['age_group']
     # Mostra per default le attività della settimana corrente
     today = datetime.now().date()
     current_monday = get_monday(today)
     current_monday_str = current_monday.strftime('%Y-%m-%d')
     current_friday = current_monday + timedelta(days=4)
     
-    activities = database.get_scheduled_activities(week_start=current_monday_str)
+    activities = database.get_scheduled_activities(week_start=current_monday_str, age_group=age_group)
     week_range_str = f"dal {current_monday.strftime('%d/%m/%Y')} al {current_friday.strftime('%d/%m/%Y')}"
     
     return render_template('index.html', activities=activities, week_range_str=week_range_str, current_week=current_monday_str)
 
+@app.route('/set-category/<category_name>')
+def set_category(category_name):
+    valid_categories = ['micro', 'mini', 'medi', 'maxi', 'mega', 'macro']
+    if category_name in valid_categories:
+        session['age_group'] = category_name
+        flash(f'Categoria {category_name.capitalize()} selezionata con successo.', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/change-category')
+def change_category():
+    session.pop('age_group', None)
+    return redirect(url_for('index'))
+
 @app.route('/schedule')
+@category_required
 def schedule():
     week_param = request.args.get('week')
     day_param = request.args.get('day')
@@ -249,7 +285,7 @@ def schedule():
         day_dates[name] = date_for_day.strftime('%d/%m')
         
     # Carica le attività della settimana e giorno
-    activities = database.get_scheduled_activities(week_start=selected_monday_str, day_of_week=selected_day)
+    activities = database.get_scheduled_activities(week_start=selected_monday_str, day_of_week=selected_day, age_group=session['age_group'])
     activities = [process_activity_matchups(act) for act in activities]
     
     # Calcola il posizionamento per la griglia CSS
@@ -315,6 +351,7 @@ def cancel_referee(activity_id):
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
+@category_required
 def create_activity():
     today = datetime.now().date()
     current_monday = get_monday(today)
@@ -455,7 +492,7 @@ def create_activity():
         database.schedule_activity(
             catalog_id, title, description, day_of_week, start_time, end_time, week_start,
             category, optional_activity, field, referees_needed, activity_type,
-            team1, team2, team3, team4, matchups_json
+            team1, team2, team3, team4, matchups_json, age_group=session['age_group']
         )
         flash(f'Attività "{title}" programmata con successo!', 'success')
         return redirect(url_for('schedule', week=week_start, day=day_of_week))
@@ -476,6 +513,7 @@ def create_activity():
 
 @app.route('/activity/<int:activity_id>/edit', methods=['GET', 'POST'])
 @login_required
+@category_required
 def edit_activity(activity_id):
     activity = database.get_scheduled_activity_by_id(activity_id)
     if not activity:
@@ -627,7 +665,7 @@ def edit_activity(activity_id):
             activity_id, title, description, day_of_week, start_time, end_time, week_start,
             category, optional_activity, field, referees_needed, activity_type,
             team1, team2, team3, team4, winner,
-            second_place, third_place, fourth_place, matchups_json
+            second_place, third_place, fourth_place, matchups_json, age_group=activity['age_group']
         )
         flash(f'Attività "{title}" aggiornata con successo!', 'success')
         return redirect(url_for('activity_detail', activity_id=activity_id, back_week=week_start, back_day=day_of_week))
@@ -652,6 +690,10 @@ def activity_detail(activity_id):
     if not activity:
         flash('Attività non trovata.', 'error')
         return redirect(url_for('index'))
+        
+    if session.get('age_group') != activity.get('age_group'):
+        session['age_group'] = activity.get('age_group')
+        
     activity = process_activity_matchups(activity)
         
     back_week = request.args.get('back_week')
@@ -841,6 +883,7 @@ def set_matchup_ranking(activity_id):
 
 @app.route('/admin/leaderboard')
 @login_required
+@category_required
 def admin_leaderboard():
     week_param = request.args.get('week')
     today = datetime.now().date()
@@ -862,9 +905,11 @@ def admin_leaderboard():
     next_week = (selected_monday + timedelta(days=7)).strftime('%Y-%m-%d')
     
     # Prepara la matrice scores[team][day] = points
-    scores = {team: {day: 0 for day in DAY_NAMES} for team in PREDEFINED_TEAMS}
+    age_group = session['age_group']
+    teams = get_teams_for_category(age_group)
+    scores = {team: {day: 0 for day in DAY_NAMES} for team in teams}
     
-    activities = database.get_scheduled_activities(week_start=selected_monday_str)
+    activities = database.get_scheduled_activities(week_start=selected_monday_str, age_group=age_group)
     
     for act in activities:
         if act['category'] == 'gioco':
@@ -920,10 +965,10 @@ def admin_leaderboard():
                     
     # Calcola i totali
     totals = {}
-    for team in PREDEFINED_TEAMS:
+    for team in teams:
         totals[team] = sum(scores[team].values())
         
-    sorted_teams = sorted(PREDEFINED_TEAMS, key=lambda t: totals[t], reverse=True)
+    sorted_teams = sorted(teams, key=lambda t: totals[t], reverse=True)
     
     # Opzioni settimane (mostriamo le scorse 2, la corrente e le prossime 2)
     weeks_options = []

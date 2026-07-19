@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Seleziona Categoria - CampHero{% endblock %}
+
+{% block content %}
+<div class="category-selection-container">
+    <div class="selection-header">
+        <h1><i class="fa-solid fa-sun icon-accent icon-sun"></i> Benvenuto su CampHero</h1>
+        <p>Seleziona la tua categoria d'età per accedere al planning settimanale, al tabellone orario e alla classifica punteggi dedicata.</p>
+    </div>
+    
+    <div class="category-grid">
+        <a href="{{ url_for('set_category', category_name='micro') }}" class="category-card card-micro">
+            <div class="category-icon">
+                <i class="fa-solid fa-seedling"></i>
+            </div>
+            <div class="category-info">
+                <h3>Micro</h3>
+                <span class="teams-badge"><i class="fa-solid fa-people-group"></i> Squadre: Rossi, Verdi, Gialli, Blu</span>
+            </div>
+            <div class="card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </a>
+        
+        <a href="{{ url_for('set_category', category_name='mini') }}" class="category-card card-mini">
+            <div class="category-icon">
+                <i class="fa-solid fa-child"></i>
+            </div>
+            <div class="category-info">
+                <h3>Mini</h3>
+                <span class="teams-badge"><i class="fa-solid fa-people-group"></i> Squadre: Rossi, Verdi, Gialli, Blu</span>
+            </div>
+            <div class="card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </a>
+        
+        <a href="{{ url_for('set_category', category_name='medi') }}" class="category-card card-medi">
+            <div class="category-icon">
+                <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div class="category-info">
+                <h3>Medi</h3>
+                <span class="teams-badge"><i class="fa-solid fa-people-group"></i> Squadre: Rossi, Verdi, Gialli, Blu</span>
+            </div>
+            <div class="card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </a>
+        
+        <a href="{{ url_for('set_category', category_name='maxi') }}" class="category-card card-maxi">
+            <div class="category-icon">
+                <i class="fa-solid fa-person-running"></i>
+            </div>
+            <div class="category-info">
+                <h3>Maxi</h3>
+                <span class="teams-badge"><i class="fa-solid fa-people-group"></i> Squadre: Rossi, Verdi, Gialli, Blu</span>
+            </div>
+            <div class="card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </a>
+        
+        <a href="{{ url_for('set_category', category_name='mega') }}" class="category-card card-mega">
+            <div class="category-icon">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div class="category-info">
+                <h3>Mega</h3>
+                <span class="teams-badge"><i class="fa-solid fa-people-group"></i> Squadre: Rossi, Verdi, Gialli, Blu</span>
+            </div>
+            <div class="card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </a>
+        
+        <a href="{{ url_for('set_category', category_name='macro') }}" class="category-card card-macro">
+            <div class="category-icon">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <div class="category-info">
+                <h3>Macro</h3>
+                <span class="teams-badge"><i class="fa-solid fa-people-group"></i> Squadre: Rossi, Verdi, Gialli, Blu</span>
+            </div>
+            <div class="card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -3316,3 +3316,160 @@ select:focus {
     }
 }
 
+/* ==========================================================================
+   PAGINA SELEZIONE CATEGORIA (HOME)
+   ========================================================================== */
+.category-selection-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.selection-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.selection-header h1 {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 12px;
+}
+
+.selection-header p {
+    color: var(--text-muted);
+    font-size: 18px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.category-card {
+    display: flex;
+    align-items: center;
+    padding: 24px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    transition: var(--transition);
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.category-icon {
+    font-size: 32px;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    transition: var(--transition);
+    color: #fff;
+}
+
+.category-info {
+    flex-grow: 1;
+}
+
+.category-info h3 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.category-info .teams-badge {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.4;
+    display: block;
+}
+
+.card-arrow {
+    font-size: 18px;
+    color: var(--text-light);
+    transition: var(--transition);
+    margin-left: 10px;
+}
+
+.category-card:hover .card-arrow {
+    transform: translateX(5px);
+    color: var(--text-main);
+}
+
+/* Colori e gradienti per categoria */
+/* Micro */
+.card-micro::before { background: linear-gradient(to bottom, #38bdf8, #0284c7); }
+.card-micro .category-icon { background: linear-gradient(135deg, #38bdf8, #0284c7); }
+.card-micro:hover { border-color: #38bdf8; box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.15); }
+
+/* Mini */
+.card-mini::before { background: linear-gradient(to bottom, #34d399, #059669); }
+.card-mini .category-icon { background: linear-gradient(135deg, #34d399, #059669); }
+.card-mini:hover { border-color: #34d399; box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.15); }
+
+/* Medi */
+.card-medi::before { background: linear-gradient(to bottom, #fbbf24, #d97706); }
+.card-medi .category-icon { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.card-medi:hover { border-color: #fbbf24; box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.15); }
+
+/* Maxi */
+.card-maxi::before { background: linear-gradient(to bottom, #818cf8, #4f46e5); }
+.card-maxi .category-icon { background: linear-gradient(135deg, #818cf8, #4f46e5); }
+.card-maxi:hover { border-color: #818cf8; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15); }
+
+/* Mega */
+.card-mega::before { background: linear-gradient(to bottom, #a78bfa, #7c3aed); }
+.card-mega .category-icon { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.card-mega:hover { border-color: #a78bfa; box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.15); }
+
+/* Macro */
+.card-macro::before { background: linear-gradient(to bottom, #fb923c, #ea580c); }
+.card-macro .category-icon { background: linear-gradient(135deg, #fb923c, #ea580c); }
+.card-macro:hover { border-color: #fb923c; box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.15); }
+
+@media (max-width: 600px) {
+    .category-selection-container {
+        margin: 20px auto;
+    }
+    .selection-header h1 {
+        font-size: 30px;
+    }
+    .selection-header p {
+        font-size: 15px;
+    }
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+ 
+ 

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS activity_catalog (
 CREATE TABLE IF NOT EXISTS scheduled_activities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     catalog_id INTEGER REFERENCES activity_catalog(id) ON DELETE SET NULL,
+    age_group TEXT NOT NULL DEFAULT 'macro',
     title TEXT NOT NULL,
     description TEXT,
     day_of_week TEXT NOT NULL,

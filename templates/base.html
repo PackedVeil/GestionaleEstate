@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{% block title %}Gestionale Estate Macro{% endblock %}</title>
+    <title>{% block title %}Gestionale Estate{% if selected_age_group %} {{ selected_age_group | capitalize }}{% endif %} - CampHero{% endblock %}</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,11 +19,16 @@
         <div class="container navbar">
             <a href="{{ url_for('index') }}" class="logo">
                 <i class="fa-solid fa-sun icon-sun"></i>
-                <span>Macro<strong>Estate</strong></span>
+                <span>{% if selected_age_group %}{{ selected_age_group | capitalize }}{% else %}Camp{% endif %}<strong>Estate</strong></span>
             </a>
             
             <!-- Navbar per Desktop -->
             <nav class="nav-menu">
+                {% if selected_age_group %}
+                    <a href="{{ url_for('change_category') }}" class="nav-link" style="color: var(--secondary-color); font-weight: 600;" title="Cambia categoria d'età">
+                        <i class="fa-solid fa-arrows-rotate"></i> Cambia ({{ selected_age_group | capitalize }})
+                    </a>
+                {% endif %}
                 <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
                     <i class="fa-solid fa-list-check"></i> Attività
                 </a>
@@ -80,6 +85,12 @@
 
     <!-- Bottom Navigation Bar per Mobile (Visibile solo da Telefono) -->
     <nav class="mobile-bottom-nav">
+        {% if selected_age_group %}
+            <a href="{{ url_for('change_category') }}" class="mobile-nav-link" style="color: var(--secondary-color);">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Cambia</span>
+            </a>
+        {% endif %}
         <a href="{{ url_for('index') }}" class="mobile-nav-link {% if request.endpoint == 'index' %}active{% endif %}">
             <i class="fa-solid fa-list-check"></i>
             <span>Attività</span>
@@ -102,7 +113,7 @@
 
     <footer class="app-footer">
         <div class="container">
-            <p>&copy; 2026 Estate Murialdo Macro - Centro Estivo.</p>
+            <p>&copy; 2026 Estate Murialdo {% if selected_age_group %}{{ selected_age_group | capitalize }} {% endif %}- Centro Estivo.</p>
         </div>
     </footer>
 

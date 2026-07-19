@@ -19,6 +19,15 @@ def init_db():
     with open(SCHEMA_PATH, 'r', encoding='utf-8') as f:
         conn.executescript(f.read())
     conn.commit()
+    
+    # Migrazione: Aggiungi la colonna age_group se non esiste
+    try:
+        conn.execute("ALTER TABLE scheduled_activities ADD COLUMN age_group TEXT NOT NULL DEFAULT 'macro';")
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Colonna già presente
+        pass
+        
     conn.close()
 
 # --- Funzioni Utenti ---
@@ -71,7 +80,7 @@ def add_catalog_activity(name, description):
 # --- Funzioni Attività Schedulate ---
 def schedule_activity(catalog_id, title, description, day_of_week, start_time, end_time, week_start,
                       category, optional_activity=None, field=None, referees_needed=0, activity_type='torneo',
-                      team1=None, team2=None, team3=None, team4=None, matchups_json=None):
+                      team1=None, team2=None, team3=None, team4=None, matchups_json=None, age_group='macro'):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -79,11 +88,11 @@ def schedule_activity(catalog_id, title, description, day_of_week, start_time, e
             catalog_id, title, description, day_of_week, start_time, end_time, week_start,
             category, optional_activity, field, referees_needed, activity_type,
             team1, team2, team3, team4, winner, second_place, third_place, fourth_place,
-            matchups_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?)
+            matchups_json, age_group
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, ?)
     ''', (catalog_id, title, description, day_of_week, start_time, end_time, week_start,
           category, optional_activity, field, referees_needed, activity_type,
-          team1, team2, team3, team4, matchups_json))
+          team1, team2, team3, team4, matchups_json, age_group))
     conn.commit()
     inserted_id = cursor.lastrowid
     conn.close()
@@ -92,7 +101,7 @@ def schedule_activity(catalog_id, title, description, day_of_week, start_time, e
 def update_scheduled_activity(activity_id, title, description, day_of_week, start_time, end_time, week_start,
                               category, optional_activity=None, field=None, referees_needed=0, activity_type='torneo',
                               team1=None, team2=None, team3=None, team4=None, winner=None,
-                              second_place=None, third_place=None, fourth_place=None, matchups_json=None):
+                              second_place=None, third_place=None, fourth_place=None, matchups_json=None, age_group=None):
     conn = get_db_connection()
     conn.execute('''
         UPDATE scheduled_activities
@@ -100,16 +109,16 @@ def update_scheduled_activity(activity_id, title, description, day_of_week, star
             category = ?, optional_activity = ?, field = ?, referees_needed = ?, activity_type = ?,
             team1 = ?, team2 = ?, team3 = ?, team4 = ?, winner = ?,
             second_place = ?, third_place = ?, fourth_place = ?,
-            matchups_json = ?
+            matchups_json = ?, age_group = COALESCE(?, age_group)
         WHERE id = ?
     ''', (title, description, day_of_week, start_time, end_time, week_start,
           category, optional_activity, field, referees_needed, activity_type,
           team1, team2, team3, team4, winner,
-          second_place, third_place, fourth_place, matchups_json, activity_id))
+          second_place, third_place, fourth_place, matchups_json, age_group, activity_id))
     conn.commit()
     conn.close()
 
-def get_scheduled_activities(week_start=None, day_of_week=None):
+def get_scheduled_activities(week_start=None, day_of_week=None, age_group=None):
     conn = get_db_connection()
     query = '''
         SELECT sa.id, sa.catalog_id, sa.title, 
@@ -119,7 +128,7 @@ def get_scheduled_activities(week_start=None, day_of_week=None):
                sa.referees_needed, sa.activity_type,
                sa.team1, sa.team2, sa.team3, sa.team4, sa.winner,
                sa.second_place, sa.third_place, sa.fourth_place,
-               sa.matchups_json
+               sa.matchups_json, sa.age_group
         FROM scheduled_activities sa
         LEFT JOIN activity_catalog ac ON sa.catalog_id = ac.id
     '''
@@ -131,6 +140,9 @@ def get_scheduled_activities(week_start=None, day_of_week=None):
     if day_of_week:
         conditions.append('sa.day_of_week = ?')
         params.append(day_of_week)
+    if age_group:
+        conditions.append('sa.age_group = ?')
+        params.append(age_group)
         
     if conditions:
         query += ' WHERE ' + ' AND '.join(conditions)
@@ -169,7 +181,7 @@ def get_scheduled_activity_by_id(activity_id):
                sa.referees_needed, sa.activity_type,
                sa.team1, sa.team2, sa.team3, sa.team4, sa.winner,
                sa.second_place, sa.third_place, sa.fourth_place,
-               sa.matchups_json
+               sa.matchups_json, sa.age_group
         FROM scheduled_activities sa
         LEFT JOIN activity_catalog ac ON sa.catalog_id = ac.id
         WHERE sa.id = ?
