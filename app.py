@@ -61,6 +61,8 @@ def get_teams_for_category(category):
     if not category:
         return []
     colors = ['Blu', 'Rossi', 'Verdi', 'Gialli']
+    if category=='macro':
+        return PREDEFINED_TEAMS
     return [f"{category}{color}" for color in colors]
 
 # Squadre predefinite (fallback per scopi globali)
