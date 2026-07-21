@@ -27,24 +27,11 @@
             </div>
         </div>
 
-        <!-- Titolo e Descrizione Generali (Mostrati solo per Gioco) -->
-        <div class="form-group" id="title-group">
-            <label for="title" class="form-label">Titolo Gioco</label>
-            <input type="text" name="title" id="title" placeholder="Lascia vuoto per ereditare dal catalogo o inserisci titolo..." class="form-control">
-        </div>
-        
-        <div class="form-group" id="desc-group">
-            <label for="description" class="form-label">Descrizione / Note Gioco</label>
-            <textarea name="description" id="description" rows="3" placeholder="Informazioni aggiuntive facoltative..." class="form-control"></textarea>
-        </div>
-
-        <hr class="form-divider" id="divider-gioco">
-
         <!-- SEZIONE GIOCO -->
         <div id="section-gioco" class="form-section transition-section">
             <!-- Scelta del tipo di attività (Catalogo esistente vs Nuova) -->
             <div class="form-group">
-                <label class="form-label font-bold">Origine del Gioco</label>
+                <label class="form-label font-bold">Gioco</label>
                 <div class="radio-toggle-group">
                     <label class="radio-label">
                         <input type="radio" name="catalog_selection" value="existing" checked onchange="toggleActivitySource('existing')">
